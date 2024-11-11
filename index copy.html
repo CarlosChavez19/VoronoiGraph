@@ -1,0 +1,645 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Exportaciones del Perú hacia el APEC por tipo de producto (US$ millones)</title>
+    <meta name="description" content="d3-voronoi-map plugin to remake 'Global Population by Region from 1950 to 2100'">
+    <script src="https://d3js.org/d3.v6.min.js" charset="utf-8"></script>
+    <script src="https://rawcdn.githack.com/Kcnarf/d3-weighted-voronoi/v1.0.0/build/d3-weighted-voronoi.js"></script>
+    <script src="https://rawcdn.githack.com/Kcnarf/d3-voronoi-map/v2.0.0/build/d3-voronoi-map.js"></script>
+    <style>
+          
+      #wip {
+        display: none;
+        position: absolute;
+        top: 200px;
+        left: 330px;
+        font-size: 40px;
+        text-align: center;
+      }
+      #tooltip {
+        position: absolute;
+        padding: 5px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 12px;
+        pointer-events: none;
+        display: none;
+      }
+      
+      svg {
+        background-color: #f7f2d7;
+      }
+      
+      #title {
+        font-weight: 700;
+        font-size: 15;
+      }
+      
+      text.tiny {
+        font-size: 10pt;
+      }
+      text.light {
+        fill: darkgray
+      }
+      
+      .map-container {
+        transition: transform 0.2s ease-in-out;
+      }
+      
+      
+      .symbol {
+        fill: none;
+        stroke: gray ;
+        stroke-width: 14px;
+      }
+      
+      .cell {
+        stroke: lightgrey;
+        stroke-width: 1px;
+      }
+      
+      .population {
+        fill: white;
+        text-anchor: middle;
+        dominant-baseline: central;
+      }
+      
+      .population-total, .year {
+        fill: lightgrey;
+        text-anchor: middle;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      
+      .dashed {
+        stroke-dasharray: 2, 4;
+      }
+      
+      
+      .remarquable-notes path {
+        fill: none;
+        stroke: grey;
+      }
+      
+      .remarquable-notes circle {
+        fill: grey;
+      }
+      
+      .remarquable-note.year2100>path {
+        stroke-dasharray: none;
+      }
+      
+      .legend-color {
+        stroke-width: 1px;
+        stroke:darkgrey;
+      }
+      
+      .highlighter {
+        fill: transparent;
+        stroke: none;
+      }
+      .highlight {
+        stroke: white;
+        stroke-width: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg>
+    	<defs>
+        <filter id="inset-shadow">
+          <feGaussianBlur stdDeviation="5" result="offset-blur"></feGaussianBlur>
+          <!-- Shadow Blur -->
+    			<feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
+          <!-- Invert the drop shadow to create an inner shadow -->
+    			<feFlood flood-color="black" flood-opacity="1" result="color"></feFlood>           	<!-- Color & Opacity -->
+    			<feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
+          <!-- Clip color inside shadow -->
+    			<feComponentTransfer in="shadow" result="shadow">
+            <!-- Shadow Opacity -->
+        		<feFuncA type="linear" slope=".75"></feFuncA>
+    			</feComponentTransfer>
+    			<feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
+          <!-- Put shadow over original object -->
+        </filter>
+      </defs>
+    </svg>
+    
+    <div id="tooltip"></div>
+    
+    <script>
+      //begin: constants
+      var _PI = Math.PI,
+      		_2PI = 2*Math.PI,
+      		cos = Math.cos,
+          sin = Math.sin,
+      		sqrt = Math.sqrt;
+      //end: constants
+      
+      //begin: raw data global def
+      var overallData;
+      var selectedData;
+      var totalPopulationByYear = {};
+      var remarquableData;
+      //end: raw data global def
+      
+      //begin: data-related utils
+      function populationAccessor(d){ return d["weight"]; };
+      function yearAccesor(d){ return d["tipo"];}
+      function highlighterGroupId(d){ return "group-"+d.id; };
+      //end: data-related utils
+      
+      //begin: drawing utils
+      function liner(poly){ return "M"+poly.join(",")+"z"; };
+      //end: drawing utils
+      
+      //begin: layout conf.
+      var svgWidth = 550, 
+          svgHeight = 450,
+          margin = {top: 10, right: 10, bottom: 10, left: 10},
+          height = svgHeight - margin.top - margin.bottom,
+          width = svgWidth - margin.left - margin.right,
+          halfWidth = width/2,
+          halfHeight = height/2,
+          quarterWidth = width/4,
+          quarterHeight = height/4,
+          titleY = 20,
+          legendsTopY = 70,
+          mapCenter = [quarterWidth+40, halfHeight+20];
+      //end: layout conf.
+      
+      //begin: map conf.
+      var baseRadius = 150;
+      var baseTotalPopulation,
+          dataOfYear,
+          totalPopulationOfYear = 3930,
+          circlingPolygon,
+          simulation,
+          polygons;
+      //end: map conf.
+      
+      //begin: reusable d3Selection
+      var svg, drawingArea, mapContainer;
+      //end: reusable d3Selection
+      
+      d3.csv("Exportaciones2.csv").then(function(data) {
+        data.forEach(function(d) {csvParser(d)});
+        overallData = data;
+        
+        init(overallData);
+
+      });
+
+      //funcion que se encarga de inicializar el mapa dependiendo de la data proporcionada
+      function init(data){
+        initData(); 
+        initLayout();
+        simulate(data);
+      }
+      
+      //////////////////////////////////////
+      // Mechanics involved for animation //
+      //////////////////////////////////////
+      
+      //Inicializacion del mapa
+      function simulate(overallData){
+        simulation = d3.voronoiMapSimulation(overallData)
+          .clip(circlingPolygon)
+          .weight(populationAccessor)
+        	.convergenceRatio(0.02)
+          .on("tick", function() {
+          // function called after each iteration of computation
+          // called only in simulation mode, not in static mode (see below)
+          polygons = simulation.state().polygons;
+          redrawMap();
+        })
+          .on("end", function() {
+          attachMouseListener(overallData);
+        }); 
+        simulation.initialPosition(d3.voronoiMapInitialPositionPie().startAngle(-Math.PI/10));
+        
+
+      }
+      
+      //////////////////////////////////////
+      //          Data management         //
+      //////////////////////////////////////
+      
+      //Funcion despreciable, hay que quitarla
+      function initData() {
+        baseTotalPopulation = 3930;
+
+        //extraer esta linea de codigo, es importante
+        circlingPolygon = computeCirclingPolygon(baseRadius);
+
+        //funcion que podemos usar para guardar las descripciones
+        makeRemarquableData();
+      }
+      
+      /*
+        Esta funcion lee el csv proporcionado y crea una lista donde guarda
+        la infomacion de dicho csv.      
+      */
+      function csvParser(d) {
+          
+          d3.range(0,1,1).map(function(){
+            d.monto = +d.monto;
+
+            // Modifica los valores de PBI para que se vean mejor en el mapa
+
+            d.weight = d.monto
+            if (d.anio == "2023"){
+              d.color = "#430cb0";
+            }
+            else {
+              d.color = "#8822bf";
+            }
+
+
+
+            });
+          d.id = +d.id;
+          return d;
+        }
+      
+      //////////////////////////////////////
+      //              Drawing             //
+      //////////////////////////////////////
+      
+      //Funcion que se encargar de generar la forma circular del mapa
+      function computeCirclingPolygon(radius) {
+        var points = 60,
+            increment = _2PI/points,
+            circlingPolygon = [];
+        
+        for (var a=0, i=0; i<points; i++, a+=increment) {
+          circlingPolygon.push(
+            [radius*Math.cos(a), radius*Math.sin(a)]
+          )
+        }
+        
+      	return circlingPolygon;
+      };
+      
+      //Funcion que se encarga de inicializar el layout del mapa
+      function initLayout() {
+        svg = d3.select("svg")
+          .attr("width", svgWidth)
+          .attr("height", svgHeight);
+        
+        drawingArea = svg.append("g")
+        	.classed("drawingArea", true)
+        	.attr("transform", "translate("+[margin.left,margin.top]+")");
+                
+        mapContainer = drawingArea.append("g")
+        	.classed("map-container", true)
+        	.attr("transform", "translate("+mapCenter+")");
+
+        drawSymbol();
+        
+        var yearRadius = baseRadius+5
+        
+        svg.select("defs")
+        	.append("path")
+          .attr("d", "M "+[-yearRadius,0]+" A "+yearRadius+" "+yearRadius+" 0 1 1 "+[0, yearRadius])
+        	.attr("id", "year_path");
+
+        mapContainer.append("text")
+          .append("textPath")
+          	.attr("xlink:href", "#year_path")
+        		.attr("startOffset", "5%")
+          		.append("tspan")
+          			.classed("year", true)
+        				.attr("transform", "rotate(-45)translate(0,"+(-baseRadius-6)+")");
+        
+        mapContainer.append("text")
+          .append("textPath")
+          	.attr("xlink:href", "#year_path")
+        		.attr("startOffset", "40%")
+          		.append("tspan")
+                .classed("population-total", true)
+                .attr("transform", "rotate(45)translate(0,"+(-baseRadius-6)+")");
+        
+        mapContainer.append("g")
+        	.classed('cells', true);
+        mapContainer.append("g")
+        	.classed('populations', true);
+        mapContainer.append("g")
+        	.classed('highlighters', true);
+
+        drawLegends();
+        drawTitle();
+        drawFooter();
+      }
+      
+      //Funcion que se puede usar para cargar descripciones utiles
+      function makeRemarquableData() {
+        var radiusStrokeCompensation = 3;
+        remarquableData = [];
+
+        remarquableData.push({
+          radius: baseRadius+radiusStrokeCompensation,
+          desc: "1950's global population",
+          class: "year1950"
+        });
+        remarquableData.push({
+          radius: baseRadius*sqrt(2)+radiusStrokeCompensation,
+          desc: "Two times 1950's global population, reached by year ~1995",
+          class: "2-times"
+        });
+        remarquableData.push({
+          radius: baseRadius*sqrt(3)+radiusStrokeCompensation,
+          desc: "Three times 1950's global population, projected to be reached by year ~2025",
+          class: "3-times"
+        });
+        remarquableData.push({
+          radius: baseRadius*2+radiusStrokeCompensation,
+          desc: "Four times 1950's global population, projected to be reached by year ~2060",
+          class: "4-times"
+        });
+        remarquableData.push({
+          radius: baseRadius * sqrt(totalPopulationByYear[2100]/baseTotalPopulation)+radiusStrokeCompensation,
+          desc: "2100, projected to be more than four times 1950's global population",
+          class: "year2100"
+        });
+      }
+      
+
+      function drawTitle() {
+        drawingArea.append("text")
+        	.attr("id", "title")
+        	.attr("transform", "translate("+[halfWidth, titleY]+")")
+        	.attr("text-anchor", "middle")
+          .text("Exportaciones peruanas hacia economías de APEC por tipo (US$ millones)")
+      }
+      
+      function drawFooter() {
+        //Para agregar mas texto solo duplicar lo de abajo y cambiar el texto
+        drawingArea.append("text")
+        	.classed("tiny light", true)
+        	.attr("transform", "translate("+[0, height]+")")
+        	.attr("text-anchor", "start")
+        	.text("Fuente:  Comex Perú, Mincetur")
+          .call(wrapText, width);
+
+      function wrapText(text, width) {
+          text.each(function() {
+              var text = d3.select(this),
+                  words = text.text().split(/\s+/).reverse(),
+                  word,
+                  line = [],
+                  lineNumber = 0,
+                  lineHeight = 1.1, // ems
+                  y = text.attr("y"),
+                  dy = parseFloat(text.attr("dy")) || 0,
+                  tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+          
+              while (word = words.pop()) {
+                  line.push(word);
+                  tspan.text(line.join(" "));
+                  if (tspan.node().getComputedTextLength() > width) {
+                      line.pop();
+                      tspan.text(line.join(" "));
+                      line = [word];
+                      tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                  }
+              }
+          });
+        }
+      }
+      
+      function drawLegends() {
+        var legendHeight = 13,
+            interLegend = 4,
+            colorWidth = legendHeight*4;
+        
+        var uniqueColors = {};
+        var filteredData = overallData.filter(function(d) {
+            if (!uniqueColors[d.color]) {
+                uniqueColors[d.color] = true;
+                return true;
+            }
+            return false;
+        });
+
+        var legendContainer = drawingArea.append("g")
+        	.classed("legend", true)
+        	.attr("transform", "translate("+[width, legendsTopY]+")");
+        
+        var legends = legendContainer.selectAll(".legend")
+        	.data(filteredData)
+        	.enter();
+        
+        var legend = legends.append("g")
+        	.classed("legend", true)
+        	.attr("transform", function(d,i){
+            return "translate("+[0, i*(legendHeight+interLegend)]+")";
+          })
+        	
+        legend.append("rect")
+        	.classed("legend-color", true)
+        	.attr("filter", "url(#inset-shadow)")
+        	.attr("x", -colorWidth)
+        	.attr("width", colorWidth)
+        	.attr("height", legendHeight)
+        	.style("fill", function(d){ return d.color; });
+          
+        legend.append("text")
+        	.classed("tiny", true)
+        	.attr("transform", "translate("+[-(colorWidth+5), legendHeight-2]+")")
+        	.style("text-anchor", "end")
+        	.text(function(d){ return "Año " + d.anio; });
+        
+          
+
+          /*
+        legend.append("rect")
+        	.attr("class", highlighterGroupId)
+        	.classed("highlighter", true)
+        	.attr("x", -colorWidth)
+        	.attr("width", colorWidth)
+        	.attr("height", legendHeight);
+        */
+        legendContainer.append("text")
+        	.attr("transform", "translate("+[0, -interLegend]+")")
+        	.style("text-anchor", "end")
+          .text("Leyenda");
+      }
+      
+
+      //creo que genera un circulo que rodea al mapa, ni idea la vd
+      function drawSymbol() {
+        var symbol = mapContainer.append("g").classed("symbol", true);
+        
+        symbol.append("circle")
+        	.attr("r", baseRadius-5);
+      }
+      
+      //Funcion que se encarga de dibujar las celdas del mapa con sus etiquedas
+      function redrawMap() {
+        //vale 1 xd
+        var radiusRatio = sqrt(totalPopulationOfYear/baseTotalPopulation);
+        
+        // etiqueta de 'x B People'
+        //mapContainer.select(".population-total")//cambiar esta etiqueta
+        //	.text("Peruvian economic growth rate since the country joined APEC");
+        // fin de etiqueta
+
+        var cells = mapContainer.select(".cells")
+	        .selectAll(".cell")
+        	.data(polygons);
+        cells.enter()
+        		.append("path")
+        			.classed("cell", true)
+        		.merge(cells)
+        			.attr("filter", "url(#inset-shadow)")
+        			.attr("d", liner)
+        			.style("fill", function(d){
+            		return d.site.originalObject.data.originalData.color;
+          		});
+        
+        /*
+              Hay que ve si se puede reducir el codigo de abajo
+        */
+
+        if(mapContainer.selectAll(".cell").size() > 1){
+        // Etiqueta de poblacion en cada poligono
+        var populations = mapContainer.select(".populations")
+	        .selectAll(".population")
+        	.data(polygons);
+
+        populations.enter()
+        		.append("text")
+        		.classed("population", true)
+            .style("font-size", 10+"px") //daownscale to preserve fontsize
+        		.merge(populations)
+        			.attr("transform", function(d){
+          			return "translate("+[d.site.x, d.site.y]+")scale("+1/radiusRatio+")"; // +6 for vertical centering
+        			})
+        			.each(function(d) {
+                var text = d3.select(this);
+                var value = populationAccessor(d.site.originalObject.data.originalData);
+                var year = yearAccesor(d.site.originalObject.data.originalData);
+                text.text(""); // Clear any existing text
+                /*
+                text.append("tspan")
+                    .text(value + "%")
+                    .attr("x", 0)
+                    .attr("dy", "-0.5em");
+                    */
+                text.append("tspan")
+                    .text(year)
+                    .attr("x", 0)
+                    .attr("dy", "0em"); // Adjust the dy value as needed for line spacing
+              })
+            }
+        else{
+          var moreInfo = mapContainer.select(".populations")
+            .selectAll(".population")
+          	.data(polygons);
+          
+
+
+          moreInfo.enter()
+            .append("foreignObject")
+            .attr("width", 200)
+            .attr("height", 50)
+            .attr("x", -100) // Centrado horizontalmente
+            .attr("y", -120) // Posicionado arriba del párrafo
+            .append("xhtml:div")
+            .style("font-size", "42px")
+            .style("font-weight", "bold")
+            .style("text-align", "center")
+            .style("color", "white")
+            .html(function(d) {
+              // Obtén el año de los datos de la celda
+              var year = yearAccesor(d.site.originalObject.data.originalData);
+              return "<p style='margin:0'>" + year + "</p>";
+            });            
+          
+          moreInfo.enter()
+            .append("foreignObject")
+            .attr("width", 200) // Establece el ancho del contenedor del párrafo
+            .attr("height", 300) // Establece la altura del contenedor del párrafo
+            .attr("x", -100) // Centra el contenedor horizontalmente
+            .attr("y", -50) // Centra el contenedor verticalmente
+            .append("xhtml:div")
+            .style("font-size", "10px")
+            .style("text-align", "center")
+            //falta hace una funcion similar para el año pero con la descripcion en los csv
+            .html("<p style='margin:0; color: white;'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>");
+
+
+          }
+
+          // Hasta este punto ********************
+
+
+        var highlighters = mapContainer.select(".highlighters")
+	        .selectAll(".highlighter")
+        	.data(polygons);
+        highlighters.enter()
+        		.append("path")
+        		.merge(highlighters)
+        			.attr("class", function(d) {
+                return highlighterGroupId(d.site.originalObject.data.originalData);
+              })
+        			.classed("highlighter", true)
+        			.attr("d", liner);
+      }
+      
+
+      //Funcion que se encargar de vigilar las acciones del raton para resaltar las celdas
+      /*function attachMouseListener(dataOfYear){
+        var regionId;
+        
+        dataOfYear.forEach(function(d){
+          regionId = d.id
+          
+          d3.selectAll(".group-"+regionId)
+          	.on("mouseenter", highlight(regionId, true))
+          	.on("mouseleave", highlight(regionId, false));
+        })
+      } */
+
+      function attachMouseListener(providedData){
+        providedData.forEach(function(d) {
+        const regionId = d.id;
+        d3.selectAll(".group-" + regionId)
+          .on("mouseenter", function(event) {
+            tooltip.style.display = "block";
+            tooltip.innerHTML = providedData[regionId].monto + " US$ millones"; // Cambia el contenido según tus datos
+            d3.select(".group-" + regionId).classed("highlight", true);
+          })
+          .on("mousemove", function(event) {
+            tooltip.style.left = (event.pageX + 10) + "px";
+            tooltip.style.top = (event.pageY + 10) + "px";
+          })
+          .on("mouseleave", function() {
+            tooltip.style.display = "none";
+            d3.select(this).classed("highlight", false);
+          });
+      });
+      } 
+
+
+
+      //Funcion que se encarga de mostrar mas informacion de una celda seleccionada redibujando el mapa
+      function moreInfo(regionId){
+        selectedData = [overallData[regionId]];
+        mapContainer.selectAll("*").remove();
+        init(selectedData);
+      }
+
+      //Funcion que se encarga de resaltar las celdas seleccionadas
+      function highlight(regionId, highlight){
+        return function() {
+          d3.selectAll(".group-" + regionId)
+            .classed("highlight", highlight);
+        }
+      }
+    </script>
+  </body>
+</html>
