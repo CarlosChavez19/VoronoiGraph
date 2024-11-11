@@ -104,7 +104,7 @@
     </style>
   </head>
   <body>
-    
+    <div id="container" style="display: flex; flex-wrap: wrap; max-width: 550; max-height: 450;">
       <svg>
       	<defs>
           <filter id="inset-shadow">
@@ -124,7 +124,7 @@
           </filter>
         </defs>
       </svg>
-    
+    </div>
     
     <div id="tooltip"></div>
     
@@ -138,6 +138,13 @@
       var aspectratio = 550/450
       //end: constants
       
+      var container = document.querySelector('#container');
+      console.log(container.getBoundingClientRect().height);
+      console.log(container.getBoundingClientRect().width);
+
+      
+
+
       //begin: raw data global def
       var overallData;
       var selectedData;
@@ -156,17 +163,15 @@
       
       //begin: layout conf.
       
-      var pagewidth = this.innerWidth;
-
 
       var maxWidth = 550,
-          svgWidth = this.innerWidth;
-          if (this.innerWidth > maxWidth){
+          svgWidth = container.getBoundingClientRect().width;
+          if (container.getBoundingClientRect().width > maxWidth){
             svgWidth = 550;
           }
       var maxHeight = 450,
           svgHeight = svgWidth/aspectratio;
-          if (this.innerWidth > maxWidth){
+          if (container.getBoundingClientRect().width > maxWidth){
             svgHeight = 450;
           }
 
@@ -550,9 +555,10 @@
 
       // Función para recargar el iframe al cambiar el tamaño de la ventana
       window.addEventListener('resize', function () {
-        if(this.innerWidth <= maxWidth){
+        if(container.getBoundingClientRect().width <= maxWidth){
 
-          svgWidth = this.innerWidth;
+        
+          svgWidth = container.getBoundingClientRect().width;
           svgHeight = svgWidth/aspectratio;
           height = svgHeight,
           width = svgWidth,
