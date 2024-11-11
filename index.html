@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Global Population By Region Until 2100</title>
+    <title>Exportaciones del Perú hacia el APEC por tipo de producto (US$ millones)</title>
     <meta name="description" content="d3-voronoi-map plugin to remake 'Global Population by Region from 1950 to 2100'">
     <script src="https://d3js.org/d3.v6.min.js" charset="utf-8"></script>
     <script src="https://rawcdn.githack.com/Kcnarf/d3-weighted-voronoi/v1.0.0/build/d3-weighted-voronoi.js"></script>
@@ -17,22 +17,31 @@
         font-size: 40px;
         text-align: center;
       }
+      #tooltip {
+        position: absolute;
+        padding: 5px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 12px;
+        pointer-events: none;
+        display: none;
+      }
       
       svg {
-        background-color: rgb(250,250,250);
+        background-color: #f7f2d7;
       }
       
       #title {
-        letter-spacing: 4px;
         font-weight: 700;
-        font-size: x-large;
+        font-size: 15;
       }
       
       text.tiny {
         font-size: 10pt;
       }
       text.light {
-        fill: lightgrey
+        fill: darkgray
       }
       
       .map-container {
@@ -42,7 +51,7 @@
       
       .symbol {
         fill: none;
-        stroke: white;
+        stroke: gray ;
         stroke-width: 14px;
       }
       
@@ -68,11 +77,6 @@
         stroke-dasharray: 2, 4;
       }
       
-      .remarquable-circles {
-        fill: none;
-        stroke: lightgrey;
-        stroke-width: 1px;
-      }
       
       .remarquable-notes path {
         fill: none;
@@ -123,9 +127,7 @@
       </defs>
     </svg>
     
-    <div id="wip">
-      Work in progress ...
-    </div>
+    <div id="tooltip"></div>
     
     <script>
       //begin: constants
@@ -145,7 +147,7 @@
       
       //begin: data-related utils
       function populationAccessor(d){ return d["weight"]; };
-      function yearAccesor(d){ return d["Año"];}
+      function yearAccesor(d){ return d["tipo"];}
       function highlighterGroupId(d){ return "group-"+d.id; };
       //end: data-related utils
       
@@ -154,8 +156,8 @@
       //end: drawing utils
       
       //begin: layout conf.
-      var svgWidth = 960, 
-          svgHeight = 500,
+      var svgWidth = 550, 
+          svgHeight = 450,
           margin = {top: 10, right: 10, bottom: 10, left: 10},
           height = svgHeight - margin.top - margin.bottom,
           width = svgWidth - margin.left - margin.right,
@@ -165,7 +167,7 @@
           quarterHeight = height/4,
           titleY = 20,
           legendsTopY = 70,
-          mapCenter = [quarterWidth-20, halfHeight+20];
+          mapCenter = [quarterWidth+40, halfHeight+20];
       //end: layout conf.
       
       //begin: map conf.
@@ -182,7 +184,7 @@
       var svg, drawingArea, mapContainer;
       //end: reusable d3Selection
       
-      d3.csv("PBI.csv").then(function(data) {
+      d3.csv("Exportaciones2.csv").then(function(data) {
         data.forEach(function(d) {csvParser(d)});
         overallData = data;
         
@@ -243,24 +245,22 @@
       function csvParser(d) {
           
           d3.range(0,1,1).map(function(){
-            d.PBI = +d.PBI;
+            d.monto = +d.monto;
 
             // Modifica los valores de PBI para que se vean mejor en el mapa
 
-            if(d.PBI >= 4){
-              d.weight = d.PBI+10;
+            d.weight = d.monto
+            if (d.anio == "2023"){
+              d.color = "#430cb0";
             }
-            else if(d.PBI < 4 && d.PBI > 0){
-              d.weight = d.PBI+3;
+            else {
+              d.color = "#8822bf";
             }
-            else if(d.PBI <= 0){
-              d.weight = 4;
-            }
+
+
 
             });
           d.id = +d.id;
-          d.color = d.color;
-          
           return d;
         }
       
@@ -296,6 +296,7 @@
         mapContainer = drawingArea.append("g")
         	.classed("map-container", true)
         	.attr("transform", "translate("+mapCenter+")");
+
         drawSymbol();
         
         var yearRadius = baseRadius+5
@@ -328,8 +329,8 @@
         mapContainer.append("g")
         	.classed('highlighters', true);
 
-        //drawLegends();
-        //drawTitle();
+        drawLegends();
+        drawTitle();
         drawFooter();
       }
       
@@ -371,7 +372,7 @@
         	.attr("id", "title")
         	.attr("transform", "translate("+[halfWidth, titleY]+")")
         	.attr("text-anchor", "middle")
-          .text("Global Population by Region from 1950 to 2100")
+          .text("Exportaciones peruanas hacia economías de APEC por tipo (US$ millones)")
       }
       
       function drawFooter() {
@@ -380,7 +381,33 @@
         	.classed("tiny light", true)
         	.attr("transform", "translate("+[0, height]+")")
         	.attr("text-anchor", "start")
-        	.text("Fuente: BCRP. Series anuales • Las regiones sombreadas en anaranjado corresponden a los años en que el Perú ha sido anfitrión de la cumbre de APEC.")
+        	.text("Fuente:  Comex Perú, Mincetur")
+          .call(wrapText, width);
+
+      function wrapText(text, width) {
+          text.each(function() {
+              var text = d3.select(this),
+                  words = text.text().split(/\s+/).reverse(),
+                  word,
+                  line = [],
+                  lineNumber = 0,
+                  lineHeight = 1.1, // ems
+                  y = text.attr("y"),
+                  dy = parseFloat(text.attr("dy")) || 0,
+                  tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+          
+              while (word = words.pop()) {
+                  line.push(word);
+                  tspan.text(line.join(" "));
+                  if (tspan.node().getComputedTextLength() > width) {
+                      line.pop();
+                      tspan.text(line.join(" "));
+                      line = [word];
+                      tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                  }
+              }
+          });
+        }
       }
       
       function drawLegends() {
@@ -388,12 +415,21 @@
             interLegend = 4,
             colorWidth = legendHeight*4;
         
+        var uniqueColors = {};
+        var filteredData = overallData.filter(function(d) {
+            if (!uniqueColors[d.color]) {
+                uniqueColors[d.color] = true;
+                return true;
+            }
+            return false;
+        });
+
         var legendContainer = drawingArea.append("g")
         	.classed("legend", true)
         	.attr("transform", "translate("+[width, legendsTopY]+")");
         
         var legends = legendContainer.selectAll(".legend")
-        	.data(overallData.reverse())
+        	.data(filteredData)
         	.enter();
         
         var legend = legends.append("g")
@@ -409,22 +445,27 @@
         	.attr("width", colorWidth)
         	.attr("height", legendHeight)
         	.style("fill", function(d){ return d.color; });
+          
         legend.append("text")
         	.classed("tiny", true)
         	.attr("transform", "translate("+[-(colorWidth+5), legendHeight-2]+")")
         	.style("text-anchor", "end")
-        	.text(function(d){ return d.continent; });
+        	.text(function(d){ return "Año " + d.anio; });
+        
+          
+
+          /*
         legend.append("rect")
         	.attr("class", highlighterGroupId)
         	.classed("highlighter", true)
         	.attr("x", -colorWidth)
         	.attr("width", colorWidth)
         	.attr("height", legendHeight);
-        
+        */
         legendContainer.append("text")
         	.attr("transform", "translate("+[0, -interLegend]+")")
         	.style("text-anchor", "end")
-          .text("Regions");
+          .text("Leyenda");
       }
       
 
@@ -442,8 +483,8 @@
         var radiusRatio = sqrt(totalPopulationOfYear/baseTotalPopulation);
         
         // etiqueta de 'x B People'
-        mapContainer.select(".population-total")//cambiar esta etiqueta
-        	.text("Peruvian economic growth rate since the country joined APEC");
+        //mapContainer.select(".population-total")//cambiar esta etiqueta
+        //	.text("Peruvian economic growth rate since the country joined APEC");
         // fin de etiqueta
 
         var cells = mapContainer.select(".cells")
@@ -551,7 +592,7 @@
       
 
       //Funcion que se encargar de vigilar las acciones del raton para resaltar las celdas
-      function attachMouseListener(dataOfYear){
+      /*function attachMouseListener(dataOfYear){
         var regionId;
         
         dataOfYear.forEach(function(d){
@@ -561,7 +602,28 @@
           	.on("mouseenter", highlight(regionId, true))
           	.on("mouseleave", highlight(regionId, false));
         })
+      } */
+
+      function attachMouseListener(providedData){
+        providedData.forEach(function(d) {
+        const regionId = d.id;
+        d3.selectAll(".group-" + regionId)
+          .on("mouseenter", function(event) {
+            tooltip.style.display = "block";
+            tooltip.innerHTML = providedData[regionId].monto + " US$ millones"; // Cambia el contenido según tus datos
+            d3.select(".group-" + regionId).classed("highlight", true);
+          })
+          .on("mousemove", function(event) {
+            tooltip.style.left = (event.pageX + 10) + "px";
+            tooltip.style.top = (event.pageY + 10) + "px";
+          })
+          .on("mouseleave", function() {
+            tooltip.style.display = "none";
+            d3.select(this).classed("highlight", false);
+          });
+      });
       } 
+
 
 
       //Funcion que se encarga de mostrar mas informacion de una celda seleccionada redibujando el mapa
@@ -574,17 +636,8 @@
       //Funcion que se encarga de resaltar las celdas seleccionadas
       function highlight(regionId, highlight){
         return function() {
-          d3.selectAll(".group-"+regionId)
-            .on("click", function(){
-              if (mapContainer.selectAll(".cell").size() == 1){
-                mapContainer.selectAll("*").remove();
-                init(overallData);
-              }
-              else{
-                moreInfo(regionId);
-              }
-            })
-        		.classed("highlight", highlight);
+          d3.selectAll(".group-" + regionId)
+            .classed("highlight", highlight);
         }
       }
     </script>
