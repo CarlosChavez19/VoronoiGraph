@@ -237,6 +237,7 @@
           
           d3.range(0,1,1).map(function(){
             d.monto = +d.monto;
+            d.monto = d.monto/1000;
 
             // Modifica los valores de PBI para que se vean mejor en el mapa
 
@@ -340,7 +341,7 @@
         	.classed("tiny light", true)
         	.attr("transform", "translate("+[0, height]+")")
         	.attr("text-anchor", "start")
-        	.text("Fuente:  Comex Perú, Mincetur")
+        	.text("Source:  Comex Perú, Mincetur")
           .call(wrapText, width);
 
       function wrapText(text, width) {
@@ -442,11 +443,6 @@
             		return d.site.originalObject.data.originalData.color;
           		});
         
-        /*
-              Hay que ve si se puede reducir el codigo de abajo
-        */
-
-        if(mapContainer.selectAll(".cell").size() > 1){
         // Etiqueta de poblacion en cada poligono
         var populations = mapContainer.select(".populations")
 	        .selectAll(".population")
@@ -476,48 +472,7 @@
                     .attr("x", 0)
                     .attr("dy", "0em"); // Adjust the dy value as needed for line spacing
               })
-            }
-        else{
-          var moreInfo = mapContainer.select(".populations")
-            .selectAll(".population")
-          	.data(polygons);
-          
-
-
-          moreInfo.enter()
-            .append("foreignObject")
-            .attr("width", 200)
-            .attr("height", 50)
-            .attr("x", -100) // Centrado horizontalmente
-            .attr("y", -120) // Posicionado arriba del párrafo
-            .append("xhtml:div")
-            .style("font-size", "42px")
-            .style("font-weight", "bold")
-            .style("text-align", "center")
-            .style("color", "white")
-            .html(function(d) {
-              // Obtén el año de los datos de la celda
-              var year = yearAccesor(d.site.originalObject.data.originalData);
-              return "<p style='margin:0'>" + year + "</p>";
-            });            
-          
-          moreInfo.enter()
-            .append("foreignObject")
-            .attr("width", 200) // Establece el ancho del contenedor del párrafo
-            .attr("height", 300) // Establece la altura del contenedor del párrafo
-            .attr("x", -100) // Centra el contenedor horizontalmente
-            .attr("y", -50) // Centra el contenedor verticalmente
-            .append("xhtml:div")
-            .style("font-size", "10px")
-            .style("text-align", "center")
-            //falta hace una funcion similar para el año pero con la descripcion en los csv
-            .html("<p style='margin:0; color: white;'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>");
-
-
-          }
-
-          // Hasta este punto ********************
-
+            
 
         var highlighters = mapContainer.select(".highlighters")
 	        .selectAll(".highlighter")
@@ -532,27 +487,13 @@
         			.attr("d", liner);
       }
       
-
-      //Funcion que se encargar de vigilar las acciones del raton para resaltar las celdas
-      /*function attachMouseListener(dataOfYear){
-        var regionId;
-        
-        dataOfYear.forEach(function(d){
-          regionId = d.id
-          
-          d3.selectAll(".group-"+regionId)
-          	.on("mouseenter", highlight(regionId, true))
-          	.on("mouseleave", highlight(regionId, false));
-        })
-      } */
-
       function attachMouseListener(providedData){
         providedData.forEach(function(d) {
         const regionId = d.id;
         d3.selectAll(".group-" + regionId)
           .on("mouseenter", function(event) {
             tooltip.style.display = "block";
-            tooltip.innerHTML = providedData[regionId].monto + " US$ millones"; // Cambia el contenido según tus datos
+            tooltip.innerHTML = providedData[regionId].monto + " US$ billion"; // Cambia el contenido según tus datos
             d3.select(".group-" + regionId).classed("highlight", true);
           })
           .on("mousemove", function(event) {

@@ -1,0 +1,10 @@
+﻿id,exportaciones,tipo,monto
+0,Mining,Traditional,27153
+1,Oil and derivatives,Traditional,3106
+2,Fishing,Traditional,1957
+3,Farming,Traditional,492
+4,Farming,Non-Traditional,5369
+5,Fishing,Non-Traditional,1153
+6,Textile,Non-Traditional,1076
+7,Chemical ,Non-Traditional,725
+8,Others,Non-Traditional,1382
