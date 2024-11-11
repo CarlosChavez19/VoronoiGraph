@@ -104,26 +104,27 @@
     </style>
   </head>
   <body>
-    
-      <svg>
-      	<defs>
-          <filter id="inset-shadow">
-            <feGaussianBlur stdDeviation="5" result="offset-blur"></feGaussianBlur>
-            <!-- Shadow Blur -->
-      			<feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
-            <!-- Invert the drop shadow to create an inner shadow -->
-      			<feFlood flood-color="black" flood-opacity="1" result="color"></feFlood>           	<!-- Color & Opacity -->
-      			<feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
-            <!-- Clip color inside shadow -->
-      			<feComponentTransfer in="shadow" result="shadow">
-              <!-- Shadow Opacity -->
-          		<feFuncA type="linear" slope=".75"></feFuncA>
-      			</feComponentTransfer>
-      			<feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
-            <!-- Put shadow over original object -->
-          </filter>
-        </defs>
-      </svg>
+      <div id="container" style="display: flex; flex-wrap: wrap; max-width: 550; max-height: 450;">
+        <svg>
+        	<defs>
+            <filter id="inset-shadow">
+              <feGaussianBlur stdDeviation="5" result="offset-blur"></feGaussianBlur>
+              <!-- Shadow Blur -->
+        			<feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
+              <!-- Invert the drop shadow to create an inner shadow -->
+        			<feFlood flood-color="black" flood-opacity="1" result="color"></feFlood>           	<!-- Color & Opacity -->
+        			<feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
+              <!-- Clip color inside shadow -->
+        			<feComponentTransfer in="shadow" result="shadow">
+                <!-- Shadow Opacity -->
+            		<feFuncA type="linear" slope=".75"></feFuncA>
+        			</feComponentTransfer>
+        			<feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
+              <!-- Put shadow over original object -->
+            </filter>
+          </defs>
+        </svg>
+      </div>
     
     
     <div id="tooltip"></div>
@@ -157,17 +158,17 @@
       
       //begin: layout conf.
       
-      var pagewidth = this.innerWidth;
+      var container = document.querySelector('#container');   
 
 
       var maxWidth = 550,
-          svgWidth = this.innerWidth;
-          if (this.innerWidth > maxWidth){
+          svgWidth = container.getBoundingClientRect().width;
+          if (container.getBoundingClientRect().width > maxWidth){
             svgWidth = 550;
           }
       var maxHeight = 450,
           svgHeight = svgWidth/aspectratio;
-          if (this.innerWidth > maxWidth){
+          if (container.getBoundingClientRect().width > maxWidth){
             svgHeight = 450;
           }
 
@@ -552,9 +553,9 @@
 
       // Función para recargar el iframe al cambiar el tamaño de la ventana
       window.addEventListener('resize', function () {
-        if(this.innerWidth <= maxWidth){
+        if(container.getBoundingClientRect().width <= maxWidth){
 
-          svgWidth = this.innerWidth;
+          svgWidth = container.getBoundingClientRect().width;
           svgHeight = svgWidth/aspectratio;
           height = svgHeight,
           width = svgWidth,
