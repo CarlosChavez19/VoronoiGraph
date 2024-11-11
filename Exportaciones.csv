@@ -1,0 +1,10 @@
+﻿id,exportaciones,tipo,monto
+0,Mineros,tradicional,27153
+1,Petróleo y derivados,tradicional,3106
+2,Pesca,tradicional,1957
+3,Agricultura,tradicional,492
+4,Agropecuario,no tradicional,5369
+5,Pesquero,no tradicional,1153
+6,Textil,no tradicional,1076
+7,Químico,no tradicional,725
+8,Otros,no tradicional,1382
