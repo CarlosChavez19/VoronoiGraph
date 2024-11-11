@@ -537,7 +537,7 @@
         d3.selectAll(".group-" + regionId)
           .on("mouseenter", function(event) {
             tooltip.style.display = "block";
-            tooltip.innerHTML = providedData[regionId].monto + " US$ billion"; // Cambia el contenido según tus datos
+            tooltip.innerHTML = providedData[regionId].monto + " US$ billions"; // Cambia el contenido según tus datos
             d3.select(".group-" + regionId).classed("highlight", true);
           })
           .on("mousemove", function(event) {
