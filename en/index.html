@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Exportaciones del Perú hacia el APEC por tipo de producto (US$ millones)</title>
+    <title>Peruvian Exports to APEC Economies by Type (US$ billions)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="d3-voronoi-map plugin to remake 'Global Population by Region from 1950 to 2100'">
     <script src="https://d3js.org/d3.v6.min.js" charset="utf-8"></script>
@@ -253,6 +253,7 @@
           
           d3.range(0,1,1).map(function(){
             d.monto = +d.monto;
+            d.monto = d.monto/1000;
 
             // Modifica los valores de PBI para que se vean mejor en el mapa
 
@@ -352,7 +353,7 @@
         	.attr("transform", "translate("+[halfWidth, titleY]+")")
         	.attr("text-anchor", "middle")
           .style("font-size", fontsize +"pt")
-          .text("Exportaciones peruanas hacia economías de APEC por tipo (US$ millones)")
+          .text("Peruvian Exports to APEC Economies by Type (US$ billions)")
       }
       
       function drawFooter() {
@@ -365,14 +366,14 @@
         	.classed("tiny light", true)
         	.attr("transform", "translate("+[0, height-20]+")")
         	.attr("text-anchor", "start")
-        	.text("Fuente:  Comex Perú, Mincetur")
+        	.text("Source: Comex Peru, Mincetur")
           .style("font-size", fontsize +"pt")
           .call(wrapText, width);
         drawingArea.append("text")
         	.classed("tiny light", true)
         	.attr("transform", "translate("+[0, height-5]+")")
         	.attr("text-anchor", "start")
-        	.text("Elaborado por Laboratorio de periodismo innovador ECData y la UPC")
+        	.text("Visualized by the ECData-UPC Innovative Journalism Lab")
           .style("font-size", fontsize +"pt")
           .call(wrapText, width);
 
@@ -451,13 +452,13 @@
         	.attr("transform", "translate("+[-(colorWidth+5), legendHeight-2]+")")
         	.style("text-anchor", "end")
           .style("font-size", fontsizelegend +"pt")
-        	.text(function(d){ return "Año " + d.anio; });
+        	.text(function(d){ return "Year " + d.anio; });
         
         legendContainer.append("text")
         	.attr("transform", "translate("+[0, -interLegend]+")")
         	.style("text-anchor", "end")
           .style("font-size", fontsizetitle)
-          .text("Leyenda");
+          .text("Legend");
       }
       
 
@@ -535,7 +536,7 @@
         d3.selectAll(".group-" + regionId)
           .on("mouseenter", function(event) {
             tooltip.style.display = "block";
-            tooltip.innerHTML = providedData[regionId].monto + " US$ millones"; // Cambia el contenido según tus datos
+            tooltip.innerHTML = providedData[regionId].monto + " US$ billions"; // Cambia el contenido según tus datos
             d3.select(".group-" + regionId).classed("highlight", true);
           })
           .on("mousemove", function(event) {
