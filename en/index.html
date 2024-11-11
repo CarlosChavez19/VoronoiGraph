@@ -303,7 +303,7 @@
                 
         mapContainer = drawingArea.append("g")
         	.classed("map-container", true)
-        	.attr("transform", "translate("+mapCenter+")");
+        	.attr("transform", "translate("+[mapCenter[0],mapCenter[1]-25]+")");
 
         drawSymbol();
         
@@ -425,7 +425,7 @@
 
         var legendContainer = drawingArea.append("g")
         	.classed("legend", true)
-        	.attr("transform", "translate("+[width-40, legendsTopY]+")");
+        	.attr("transform", "translate("+[width-15, legendsTopY]+")");
         
         var legends = legendContainer.selectAll(".legend")
         	.data(filteredData)
@@ -490,6 +490,9 @@
 	        .selectAll(".population")
         	.data(polygons);
 
+        var maxfontsize = 10,
+          fontsize = maxfontsize * (svgWidth / maxWidth);
+
         populations.enter()
         		.append("text")
         		.classed("population", true)
@@ -500,11 +503,12 @@
         			})
         			.each(function(d) {
                 var text = d3.select(this);
-                var value = populationAccessor(d.site.originalObject.data.originalData);
+                //var value = populationAccessor(d.site.originalObject.data.originalData);
                 var year = yearAccesor(d.site.originalObject.data.originalData);
                 text.text(""); // Clear any existing text
                 text.append("tspan")
                     .text(year)
+                    .style("font-size", fontsize +"px")
                     .attr("x", 0)
                     .attr("dy", "0em"); // Adjust the dy value as needed for line spacing
               })
