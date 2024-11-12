@@ -29,8 +29,20 @@
         display: none;
       }
       
-      svg {
+      #container{
         background-color: #f7f2d7;
+        display: flex; 
+        flex-wrap: wrap; 
+        max-height: 450; 
+        width: 100%; 
+        align-items: center;
+      }
+
+      svg{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: auto;
       }
       
       #title {
@@ -104,8 +116,8 @@
     </style>
   </head>
   <body>
-    <div id="container" style="display: flex; flex-wrap: wrap; max-width: 550; max-height: 450;">
-      <svg>
+    <div id="container">
+      <svg xmlns="http://www.w3.org/2000/svg"  preserveAspectRatio="xMaxYMin meet">
       	<defs>
           <filter id="inset-shadow">
             <feGaussianBlur stdDeviation="5" result="offset-blur"></feGaussianBlur>
