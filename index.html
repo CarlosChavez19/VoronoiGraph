@@ -29,8 +29,13 @@
         display: none;
       }
       
-      svg {
+      #container{
         background-color: #f7f2d7;
+        display: flex; 
+        flex-wrap: wrap; 
+        max-height: 450; 
+        width: 100%; 
+        align-items: center;
       }
       
       #title {
@@ -45,6 +50,12 @@
         fill: darkgray
       }
       
+      svg{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: auto;
+      }
 
       .symbol {
         fill: none;
@@ -104,8 +115,8 @@
     </style>
   </head>
   <body>
-    <div id="container" style="display: flex; flex-wrap: wrap; max-width: 550; max-height: 450;">
-      <svg>
+    <div id="container">
+      <svg xmlns="http://www.w3.org/2000/svg"  preserveAspectRatio="xMaxYMin meet">
       	<defs>
           <filter id="inset-shadow">
             <feGaussianBlur stdDeviation="5" result="offset-blur"></feGaussianBlur>
@@ -167,7 +178,7 @@
           }
       var maxHeight = 450,
           svgHeight = svgWidth/aspectratio;
-          if (container.getBoundingClientRect().width > maxWidth){
+          if (container.getBoundingClientRect().height > maxHeight){
             svgHeight = 450;
           }
 
@@ -237,8 +248,6 @@
           attachMouseListener(overallData);
         }); 
         simulation.initialPosition(d3.voronoiMapInitialPositionPie().startAngle(-Math.PI/10));
-        
-
       }
       
       //////////////////////////////////////
@@ -551,7 +560,7 @@
 
       // Función para recargar el iframe al cambiar el tamaño de la ventana
       window.addEventListener('resize', function () {
-        if(container.getBoundingClientRect().width <= maxWidth){
+        if(container.getBoundingClientRect().width <= maxWidth || container.getBoundingClientRect().height <= maxHeight){
 
         
           svgWidth = container.getBoundingClientRect().width;
